@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+  }
+
+  .root {
+    background: #000;
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Screens wrapper — only one screen visible at a time, both sit in the same spot */
+  .screens-wrap {
+    position: relative;
+    width: 480px;
+    max-width: 100%;
+  }
+
+  .screen {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    transition: opacity 0.2s ease;
+  }
+
+  /* Hidden via opacity + pointer-events so transitions work */
+  .screen.hidden {
+    display: none;
+  }
+  .screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .screen.fade-in-start {
+    opacity: 0;
+  }
+
+  .screen-title {
+    color: #fff;
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 36px;
+  }
+  .fields { display: flex; flex-direction: column; gap: 32px; }
+  .fields-group { display: flex; flex-direction: column; gap: 16px; }
+
+  .card {
+    background: #000;
+    border-radius: 32px;
+    outline: 1px rgba(255,255,255,0.4) solid;
+    outline-offset: -1px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: outline-color 0.15s ease;
+  }
+  #screen1 .card:hover {
+    outline-color: rgba(255,255,255,1);
+  }
+  .card-label {
+    color: rgba(255,255,255,0.4);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 16px;
+  }
+  .card-value-row { display: flex; align-items: baseline; gap: 8px; }
+  .card-value {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 28px;
+  }
+  .card-value[contenteditable] {
+    outline: none;
+    caret-color: rgba(255,255,255,0.6);
+    min-width: 4px;
+  }
+  .card-value-lg {
+    color: #fff;
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 32px;
+  }
+  .progress-wrap { display: flex; flex-direction: column; gap: 12px; }
+  .progress-track {
+    width: 100%;
+    height: 23px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, rgba(191,254,114,0.85) 0%, rgba(107,252,223,0.85) 100%);
+    border-radius: 32px;
+    width: 0%;
+  }
+
+  /* Button */
+  .btn {
+    height: 108px;
+    padding: 24px 32px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 32px;
+    outline: 1px #000 solid;
+    outline-offset: -1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    /* scale + bg transition */
+    transition: background 0.15s ease, transform 0.15s ease;
+    transform: scale(1);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .btn:hover { background: rgba(255,255,255,0.95); }
+  .btn.pressing { transform: scale(0.98); background: rgba(255,255,255,0.75); }
+  .btn span {
+    color: #000;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 28px;
+    font-family: 'Inter', sans-serif;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  /* Screen 2 staggered fade-in */
+  #screen2 .screen-title,
+  #screen2 .fields-group .card,
+  #screen2 .btn {
+    opacity: 0;
+  }
+  #screen2.animating .screen-title {
+    animation: fadeInEl 0.3s ease forwards 0s;
+  }
+  #screen2.animating .fields-group .card:nth-child(1) {
+    animation: fadeInEl 0.3s ease forwards 0.03s;
+  }
+  #screen2.animating .fields-group .card:nth-child(2) {
+    animation: fadeInEl 0.3s ease forwards 0.06s;
+  }
+  #screen2.animating .fields-group .card:nth-child(3) {
+    animation: fadeInEl 0.3s ease forwards 0.09s;
+  }
+  #screen2.animating .btn {
+    animation: fadeInEl 0.3s ease forwards 0.12s;
+  }
+  @keyframes fadeInEl {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="root">
+  <div class="screens-wrap">
+
+    <!-- Screen 1 -->
+    <div class="screen" id="screen1">
+      <div class="screen-title">Калькулятор целей</div>
+      <div class="fields">
+        <div class="fields-group">
+          <div class="card">
+            <div class="card-label">Целевая сумма</div>
+            <div class="card-value-row">
+              <div class="card-value" contenteditable="true" id="target">1&nbsp;000&nbsp;000</div>
+              <span class="card-value">₽</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-label">Уже накоплено</div>
+            <div class="card-value-row">
+              <div class="card-value" contenteditable="true" id="saved">275&nbsp;000</div>
+              <span class="card-value">₽</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-label">Откладываю в месяц</div>
+            <div class="card-value-row">
+              <div class="card-value" contenteditable="true" id="monthly">70&nbsp;000</div>
+              <span class="card-value">₽</span>
+            </div>
+          </div>
+        </div>
+        <div class="btn" id="calcBtn"><span>Рассчитать прогресс</span></div>
+      </div>
+    </div>
+
+    <!-- Screen 2 -->
+    <div class="screen hidden" id="screen2">
+      <div class="screen-title">Итоги расчёта</div>
+      <div class="fields">
+        <div class="fields-group">
+          <div class="card">
+            <div class="card-label">До цели осталось</div>
+            <div class="card-value-row">
+              <div class="card-value" id="res-remaining">—</div>
+              <span class="card-value">₽</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-label">Прогресс сейчас</div>
+            <div class="progress-wrap">
+              <div class="card-value-lg" id="res-percent">—</div>
+              <div class="progress-track">
+                <div class="progress-fill" id="res-bar"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-label">Когда достигну цели</div>
+            <div class="card-value-row">
+              <div class="card-value" id="res-date">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="btn" id="backBtn"><span>Изменить данные расчёта</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const MONTHS_RU = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+  function formatNum(n) {
+    return n.toLocaleString('ru-RU').replace(/\s/g, '\u00A0');
+  }
+  function parseField(id) {
+    return parseInt(document.getElementById(id).innerText.replace(/[\s\u00A0]/g, '')) || 0;
+  }
+
+  /* ---- Button press animation ---- */
+  document.querySelectorAll('.btn').forEach(btn => {
+    const down = () => btn.classList.add('pressing');
+    const up   = () => btn.classList.remove('pressing');
+    btn.addEventListener('mousedown',  down);
+    btn.addEventListener('touchstart', down, { passive: true });
+    btn.addEventListener('mouseup',    up);
+    btn.addEventListener('mouseleave', up);
+    btn.addEventListener('touchend',   up);
+    btn.addEventListener('touchcancel',up);
+  });
+
+  /* ---- Contenteditable: digits only, format on blur ---- */
+  document.querySelectorAll('[contenteditable]').forEach(el => {
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); el.blur(); return; }
+      const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
+      if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault();
+    });
+    el.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'');
+      document.execCommand('insertText', false, text);
+    });
+    el.addEventListener('blur', () => {
+      const raw = parseInt(el.innerText.replace(/[\s\u00A0]/g, '')) || 0;
+      el.innerText = formatNum(raw);
+    });
+  });
+
+  /* ---- Easing ---- */
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function animateNumber(el, target, duration, fmt) {
+    const start = performance.now();
+    (function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      el.innerText = fmt(Math.round(easeOutCubic(p) * target));
+      if (p < 1) requestAnimationFrame(tick);
+    })(performance.now());
+  }
+  function animateBar(el, target, duration) {
+    const start = performance.now();
+    (function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      el.style.width = (easeOutCubic(p) * target) + '%';
+      if (p < 1) requestAnimationFrame(tick);
+    })(performance.now());
+  }
+  function animatePercent(el, target, duration) {
+    const start = performance.now();
+    (function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      const cur = easeOutCubic(p) * target;
+      el.innerText = (cur % 1 < 0.05 ? Math.round(cur) : cur.toFixed(1).replace('.', ',')) + '%';
+      if (p < 1) requestAnimationFrame(tick);
+    })(performance.now());
+  }
+
+  /* ---- Fade helper ---- */
+  function fadeOut(el, duration, cb) {
+    el.style.transition = `opacity ${duration}ms ease`;
+    el.style.opacity = '0';
+    setTimeout(cb, duration);
+  }
+  function fadeIn(el, duration) {
+    el.style.opacity = '0';
+    el.style.transition = '';
+    void el.offsetWidth; // reflow
+    el.style.transition = `opacity ${duration}ms ease`;
+    el.style.opacity = '1';
+  }
+
+  /* ---- Calc button ---- */
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    const target  = parseField('target');
+    const saved   = parseField('saved');
+    const monthly = parseField('monthly') || 1;
+
+    const remaining  = Math.max(target - saved, 0);
+    const percent    = target > 0 ? Math.min((saved / target) * 100, 100) : 0;
+    const monthsLeft = monthly > 0 ? Math.ceil(remaining / monthly) : Infinity;
+    const now        = new Date();
+    const goalDate   = new Date(now.getFullYear(), now.getMonth() + monthsLeft, 1);
+    const dateStr    = monthsLeft === Infinity
+      ? 'Не достижимо'
+      : MONTHS_RU[goalDate.getMonth()] + ' ' + goalDate.getFullYear();
+
+    document.getElementById('res-date').innerText      = dateStr;
+    document.getElementById('res-remaining').innerText = '0';
+    document.getElementById('res-percent').innerText   = '0%';
+    document.getElementById('res-bar').style.width     = '0%';
+
+    const screen1 = document.getElementById('screen1');
+    const screen2 = document.getElementById('screen2');
+
+    // micropause → fade out screen1
+    setTimeout(() => {
+      fadeOut(screen1, 200, () => {
+        screen1.classList.add('hidden');
+        screen1.style.opacity = '';
+        screen1.style.transition = '';
+
+        // Reset screen2 animation state
+        screen2.classList.remove('animating');
+        document.querySelectorAll('#screen2 .screen-title, #screen2 .fields-group .card, #screen2 .btn')
+          .forEach(el => { el.style.animation = 'none'; el.style.opacity = '0'; });
+        void screen2.offsetWidth;
+        document.querySelectorAll('#screen2 .screen-title, #screen2 .fields-group .card, #screen2 .btn')
+          .forEach(el => { el.style.animation = ''; });
+
+        // Show screen2, trigger staggered fade-in
+        screen2.classList.remove('hidden');
+        void screen2.offsetWidth;
+        screen2.classList.add('animating');
+
+        // Animate numbers shortly after elements start appearing
+        setTimeout(() => {
+          animateNumber(document.getElementById('res-remaining'), remaining, 900, formatNum);
+          animatePercent(document.getElementById('res-percent'), percent, 900);
+          animateBar(document.getElementById('res-bar'), percent, 900);
+        }, 120);
+      });
+    }, 10);
+  });
+
+  /* ---- Back button ---- */
+  document.getElementById('backBtn').addEventListener('click', () => {
+    const screen1 = document.getElementById('screen1');
+    const screen2 = document.getElementById('screen2');
+
+    // Fade out screen2
+    fadeOut(screen2, 200, () => {
+      screen2.classList.add('hidden');
+      screen2.classList.remove('animating');
+      screen2.style.opacity = '';
+      screen2.style.transition = '';
+
+      // Reset screen2 elements for next time
+      document.querySelectorAll('#screen2 .screen-title, #screen2 .fields-group .card, #screen2 .btn')
+        .forEach(el => { el.style.animation = 'none'; el.style.opacity = '0'; });
+
+      // Show & fade in screen1
+      screen1.classList.remove('hidden');
+      fadeIn(screen1, 200);
+    });
+  });
+
+  /* ---- Make entire card clickable ---- */
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', (event) => {
+      const editable = card.querySelector('[contenteditable]');
+      if (editable && !editable.contains(event.target)) {
+        editable.focus();
+        const range = document.createRange();
+        const sel = window.getSelection();
+        range.selectNodeContents(editable);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    });
+  });
+</script>
+</body>
+</html>
